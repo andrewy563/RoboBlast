@@ -31,18 +31,28 @@ public:
 	Wall(int startX, int startY);
 };
 
-class mobileObject : public immobileObject {
+class mobileObject : public Actor {
 public:
-	virtual int bulletCollision();
+	mobileObject(int imageID, int startX, int startY, Direction startDirection, int health);
+	virtual int damage(int d);
 	virtual bool passThrough();
+	virtual bool alive();
+	virtual void setDead();
+	virtual int bulletCollision();
 private:
-	int health;
-	
+	bool ALIVE;
+	int m_health;
 };
 
+class StudentWorld;
 class Player : public mobileObject{
 public:
-	Player(int imageID, int startX, int startY);
+	Player(int startX, int startY, int subLevel, StudentWorld* world);
 	virtual void doSomething();
+	virtual int bulletCollision();
+private:
+	int ammunition;
+	int subLevel;
+	StudentWorld* m_world;
 };
 #endif // ACTOR_H_

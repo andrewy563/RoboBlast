@@ -3,11 +3,12 @@
 
 #include "GameWorld.h"
 #include "GameConstants.h"
+#include "Actor.h"
 #include <string>
 #include <vector>
+#include <iostream>
 // Students:  Add code to this file, StudentWorld.cpp, Actor.h, and Actor.cpp
-class Wall;
-class Player;
+
 
 class StudentWorld : public GameWorld
 {
@@ -15,6 +16,7 @@ public:
 	StudentWorld(std::string assetDir)
 	 : GameWorld(assetDir)
 	{
+		numSubLevel = 1;
 	}
 
 	virtual int init()
@@ -35,14 +37,27 @@ file. */
 
 	virtual int move()
 	{
+		for (size_t i = 0; i < actorVec.size(); i++) {
+			for (size_t j = 0; j < actorVec[i].size(); j++) {
+				actorVec[i][j]->doSomething();
+			}
+		}
+		m_player->doSomething();
 		  // This code is here merely to allow the game to build, run, and terminate after you hit enter a few times.
 		  // Notice that the return value GWSTATUS_PLAYER_DIED will cause our framework to end the current level.
-		decLives();
 		return GWSTATUS_CONTINUE_GAME;
 	}
 
 	virtual void cleanUp()
 	{
+		std::cerr << "hello";
+		for (size_t i = 0; i < actorVec.size(); i++) {
+			for (size_t j = 0; j < actorVec[i].size(); j++) {
+				delete actorVec[i][j];
+			}
+			actorVec[i].clear();
+		}
+		actorVec.clear();
 	}
     
     virtual int getCurrentSubLevel()
@@ -50,11 +65,13 @@ file. */
         return 0; // This code is here merely to allow the skeleton to build.
     }
 
+	bool canIPass(int x, int y);			// returns all actors that are at (x, y) in a certain sublevel 
 	void initializeStruct();		// initializes the data structures
 	void loadLevel();				// loads a level;
 private:
-	std::vector<std::vector<Wall*>> wallVec;
-	Player* player;
+	std::vector<std::vector<Actor*>> actorVec;
+	Player* m_player;
+	int numSubLevel;
 };
 
 #endif // STUDENTWORLD_H_

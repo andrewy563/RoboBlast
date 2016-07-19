@@ -5,9 +5,9 @@
 using namespace std;
 
 void StudentWorld::initializeStruct() {
-	for (int i = 0; i < VIEW_HEIGHT; i++) {
-		vector<Wall*> w;
-		wallVec.push_back(w);
+	for (int i = 0; i < numSubLevel; i++) {
+		vector<Actor*> w;
+		actorVec.push_back(w);
 	}
 }
 
@@ -27,14 +27,31 @@ void StudentWorld::loadLevel()
 				Level::MazeEntry ge = lev.getContentsOf(j, i, 0);
 				switch (ge)
 				{
-					case Level::wall:
-						Wall* w = new Wall(j, i);
-						wallVec[i].push_back(w);
-						break;
+				case Level::wall:
+				{
+					Wall* w = new Wall(j, i);
+					actorVec[0].push_back(w);
+					break;
+				}
+				case Level::player:
+				{
+					m_player = new Player(j, i, 0, this);
+					break;
+				}
 				}
 			}
 		}
 	}
+}
+
+bool StudentWorld::canIPass(int x, int y) {
+	vector<Actor*> out;
+	for (size_t i = 0; i < actorVec[0].size(); i++) {
+		if (actorVec[0][i]->getX() == x && actorVec[0][i]->getY() == y && !actorVec[0][i]->passThrough()) {
+			return false;
+		}
+	}
+	return true;
 }
 
 GameWorld* createStudentWorld(string assetDir)
