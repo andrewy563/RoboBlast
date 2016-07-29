@@ -3,56 +3,108 @@
 
 #include "GraphObject.h"
 
-class Actor: public GraphObject {
+class Actor : public GraphObject {
 public:
 	Actor(int imageID, int startX, int startY, Direction startDirection);
 	virtual void doSomething() = 0;				// dictates what the actor does during a tick
-	virtual int bulletCollision() = 0;
+	virtual int bulletCollision() = 0;			// return 0 if object blocks bullets, returns 1 if object takes damage, returns 2 if bullet goes through
 	virtual bool passThrough() = 0;
+	bool alive();
+	void setDead();
 private:
+	bool m_alive;
 };
 // Students:  Add code to this file, Actor.cpp, StudentWorld.h, and StudentWorld.cpp
 
-class immobileObject : public Actor {
+class ImmobileObject : public Actor {
 public:	
-	immobileObject(int imageID, int startX, int startY);
+	ImmobileObject(int imageID, int startX, int startY);
 	virtual void doSomething();				// dictates what the actor does during a tick
-};
-
-class solidObject : public immobileObject {
-public:
-	solidObject(int imageID, int startX, int startY);
 	virtual int bulletCollision();
 	virtual bool passThrough();
 };
 
-class Wall : public solidObject {
+class SolidObject : public ImmobileObject {
+public:
+	SolidObject(int imageID, int startX, int startY);
+	virtual int bulletCollision();
+	virtual bool passThrough();
+};
+
+class Wall : public SolidObject {
 public:
 	Wall(int startX, int startY);
 };
 
-class mobileObject : public Actor {
+class FakeWall : public ImmobileObject {
 public:
-	mobileObject(int imageID, int startX, int startY, Direction startDirection, int health);
-	virtual int damage(int d);
-	virtual bool passThrough();
-	virtual bool alive();
-	virtual void setDead();
-	virtual int bulletCollision();
-private:
-	bool ALIVE;
-	int m_health;
+	FakeWall(int startX, int startY);
 };
 
 class StudentWorld;
-class Player : public mobileObject{
+class Item : public ImmobileObject {
+public:
+	Item(int imageID, int startX, int startY, StudentWorld* world);
+	StudentWorld* world();
+	virtual void doSomething();
+	virtual void itemPickUp() = 0;
+private:
+	StudentWorld* m_world;
+};
+
+class Gold : public Item {
+public:
+	Gold(int startX, int startY, StudentWorld* world);
+	virtual void itemPickUp();
+};
+class RestoreHealth : public Item {
+public:
+	RestoreHealth(int startX, int startY, StudentWorld* world);
+	virtual void itemPickUp();
+};
+class Ammo : public Item {
+public:
+	Ammo(int startX, int startY, StudentWorld* world);
+	virtual void itemPickUp();
+};
+class ExtraLife : public Item {
+public:
+	ExtraLife(int startX, int startY, StudentWorld* world);
+	virtual void itemPickUp();
+};
+class MobileObject : public Actor {
+public:
+	MobileObject(int imageID, int startX, int startY, Direction startDirection, int health, StudentWorld* world);
+	virtual bool passThrough();
+	virtual int bulletCollision();
+	virtual StudentWorld* world();
+	void fire();
+	int health();
+	void setHealth(int newh);
+private:
+	int m_health;
+	StudentWorld* m_world;
+};
+
+class Player : public MobileObject{
 public:
 	Player(int startX, int startY, int subLevel, StudentWorld* world);
 	virtual void doSomething();
-	virtual int bulletCollision();
+	int ammo();
+	void increaseAmmo(int in);
 private:
 	int ammunition;
 	int subLevel;
+};
+
+class Bullet : public Actor {
+public:
+	Bullet(int startX, int startY, Direction startDirection, StudentWorld* world);
+	virtual void doSomething();
+	virtual int bulletCollision();
+	virtual bool passThrough();
+private:
 	StudentWorld* m_world;
 };
+
 #endif // ACTOR_H_
