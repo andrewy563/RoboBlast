@@ -5,9 +5,10 @@
 // Students:  Add code to this file (if you wish), Actor.h, StudentWorld.h, and StudentWorld.cpp
 
 // Actor Implementation
-Actor::Actor(int imageID, int startX, int startY, Direction startDirection = none) : 
-	GraphObject(imageID, startX, startY, startDirection) {
+Actor::Actor(int imageID, int startX, int startY, int sublevel, Direction startDirection = none) :
+	GraphObject(imageID, startX, startY, startDirection, sublevel) {
 	m_alive = true;
+	m_sublevel = sublevel;
 }
 bool Actor::alive() {
 	return m_alive;
@@ -16,10 +17,15 @@ void Actor::setDead() {
 	m_alive = false;
 	setVisible(false);
 }
-
-ImmobileObject::ImmobileObject(int imageID, int startX, int startY) : Actor(imageID, startX, startY) {
-
+int Actor::sublevel() {
+	return m_sublevel;
 }
+void Actor::moveSubLevel(int in) {
+	if (getID() == IID_PLAYER)					// only the player should be moving through sublevels
+		m_sublevel = in;
+}
+
+ImmobileObject::ImmobileObject(int imageID, int startX, int startY, int sublevel) : Actor(imageID, startX, startY, sublevel) {}
 void ImmobileObject::doSomething() {}
 int ImmobileObject::bulletCollision() {
 	return 2;
@@ -28,7 +34,7 @@ bool ImmobileObject::passThrough() {
 	return true;
 }
 
-Item::Item(int imageID, int startX, int startY, StudentWorld* world) : ImmobileObject(imageID, startX, startY) {
+Item::Item(int imageID, int startX, int startY, StudentWorld* world, int sublevel) : ImmobileObject(imageID, startX, startY, sublevel) {
 	m_world = world;
 	setVisible(true);
 }
@@ -39,19 +45,28 @@ void Item::doSomething() {
 	if (!alive()) {
 		return;
 	}
-	if (m_world->player()->getX() == getX() && m_world->player()->getY() == getY()) {
+	if (m_world->player()->getX() == getX() && m_world->player()->getY() == getY() && m_world->player()->sublevel() == sublevel()) {
 		itemPickUp();
 		setDead();
 	}
 }
 
-Gold::Gold(int startX, int startY, StudentWorld* world) : Item(IID_GOLD, startX, startY, world) {}
+Gate::Gate(int startX, int startY, StudentWorld* world, int sublevel, int destination) : Item(IID_GATE, startX, startY, world, sublevel) {
+	m_dest = destination;
+}
+
+void Gate::itemPickUp() {
+	world()->setSubLevel(m_dest);
+	world()->player()->moveSubLevel(m_dest);
+}
+
+Gold::Gold(int startX, int startY, StudentWorld* world, int sublevel) : Item(IID_GOLD, startX, startY, world, sublevel) {}
 
 void Gold::itemPickUp() {
 	world()->increaseScore(100);
 	world()->playSound(SOUND_GOT_GOLD);
 }
-RestoreHealth::RestoreHealth(int startX, int startY, StudentWorld* world) : Item(IID_RESTORE_HEALTH, startX, startY, world) {}
+RestoreHealth::RestoreHealth(int startX, int startY, StudentWorld* world, int sublevel) : Item(IID_RESTORE_HEALTH, startX, startY, world, sublevel) {}
 
 void RestoreHealth::itemPickUp() {
 	world()->increaseScore(100);
@@ -59,7 +74,7 @@ void RestoreHealth::itemPickUp() {
 	world()->playSound(SOUND_GOT_GOODIE);
 }
 
-Ammo::Ammo(int startX, int startY, StudentWorld* world) : Item(IID_AMMO, startX, startY, world) {}
+Ammo::Ammo(int startX, int startY, StudentWorld* world, int sublevel) : Item(IID_AMMO, startX, startY, world, sublevel) {}
 
 void Ammo::itemPickUp() {
 	world()->increaseScore(150);
@@ -67,7 +82,7 @@ void Ammo::itemPickUp() {
 	world()->playSound(SOUND_GOT_GOODIE);
 }
 
-ExtraLife::ExtraLife(int startX, int startY, StudentWorld* world) : Item(IID_EXTRA_LIFE, startX, startY, world) {}
+ExtraLife::ExtraLife(int startX, int startY, StudentWorld* world, int sublevel) : Item(IID_EXTRA_LIFE, startX, startY, world, sublevel) {}
 
 void ExtraLife::itemPickUp() {
 	world()->increaseScore(150);
@@ -75,7 +90,7 @@ void ExtraLife::itemPickUp() {
 	world()->playSound(SOUND_GOT_GOODIE);
 }
 
-SolidObject::SolidObject(int imageID, int startX, int startY) : ImmobileObject(imageID, startX, startY) {}
+SolidObject::SolidObject(int imageID, int startX, int startY, int sublevel) : ImmobileObject(imageID, startX, startY, sublevel) {}
 int SolidObject::bulletCollision() {
 	return 0;
 }
@@ -84,8 +99,8 @@ bool SolidObject::passThrough() {
 }
 
 
-MobileObject::MobileObject(int imageID, int startX, int startY, Direction startDirection, int health, StudentWorld* world) 
-	: Actor(imageID, startX, startY, startDirection) {
+MobileObject::MobileObject(int imageID, int startX, int startY, Direction startDirection, int health, StudentWorld* world, int sublevel)
+	: Actor(imageID, startX, startY,  sublevel, startDirection) {
 	m_health = health;
 	m_world = world;
 }
@@ -112,27 +127,26 @@ void MobileObject::fire() {
 	Bullet* b;
 	switch (getDirection()) {
 	case left:
-		b = new Bullet(getX() - 1, getY(), left, m_world);
+		b = new Bullet(getX() - 1, getY(), left, m_world, sublevel());
 		break;
 	case right:
-		b = new Bullet(getX() + 1, getY(), right, m_world);
+		b = new Bullet(getX() + 1, getY(), right, m_world, sublevel());
 		break;
 	case up:
-		b = new Bullet(getX(), getY() + 1, up, m_world);
+		b = new Bullet(getX(), getY() + 1, up, m_world, sublevel());
 		break;
 	case down:
-		b = new Bullet(getX(), getY() - 1, down, m_world);
+		b = new Bullet(getX(), getY() - 1, down, m_world, sublevel());
 		break;
 	}
-	world()->placeObject(b);
+	world()->placeObject(b, sublevel());
 }
 void MobileObject::setHealth(int newh) {
 	m_health = newh;
 }
 
-Player::Player(int startX, int startY, int sub, StudentWorld* world) : MobileObject(IID_PLAYER, startX, startY, right, 20, world) { 
+Player::Player(int startX, int startY, StudentWorld* world, int sublevel) : MobileObject(IID_PLAYER, startX, startY, right, 20, world, sublevel) {
 	ammunition = 0; 
-	subLevel = sub; 
 	setVisible(true); 
 }
 
@@ -152,28 +166,28 @@ void Player::doSomething() {
 		case KEY_PRESS_LEFT:
 		{
 			setDirection(left);
-			if (world()->canIPass(getX() - 1, getY()))
+			if (world()->canIPass(getX() - 1, getY(), sublevel()))
 				moveTo(getX() - 1, getY());
 			break;
 		}
 		case KEY_PRESS_RIGHT:
 		{
 			setDirection(right);
-			if (world()->canIPass(getX() + 1, getY()))
+			if (world()->canIPass(getX() + 1, getY(), sublevel()))
 				moveTo(getX() + 1, getY());
 			break;
 		}
 		case KEY_PRESS_UP:
 		{
 			setDirection(up);
-			if (world()->canIPass(getX(), getY() + 1))
+			if (world()->canIPass(getX(), getY() + 1, sublevel()))
 				moveTo(getX(), getY() + 1);
 			break;
 		}
 		case KEY_PRESS_DOWN:
 		{
 			setDirection(down);
-			if (world()->canIPass(getX(), getY() - 1))
+			if (world()->canIPass(getX(), getY() - 1, sublevel()))
 				moveTo(getX(), getY() - 1);
 			break;
 		}
@@ -186,7 +200,7 @@ int Player::ammo() {
 void Player::increaseAmmo(int n) {
 	ammunition += n;
 }
-Bullet::Bullet(int startX, int startY, Direction startDir, StudentWorld* world) : Actor(IID_BULLET, startX, startY, startDir) {
+Bullet::Bullet(int startX, int startY, Direction startDir, StudentWorld* world, int sublevel) : Actor(IID_BULLET, startX, startY, sublevel, startDir) {
 	m_world = world;
 	setVisible(true);
 }
@@ -195,17 +209,17 @@ void Bullet::doSomething() {
 	if (!alive()) {
 		return;
 	}
-
 	int check = 2;
-	check = m_world->bulletColCheck(getX(), getY());
+	check = m_world->bulletColCheck(getX(), getY(), sublevel());
 	if (check == 1 || check == 0) {
 		setDead();
 		return;
 	}
-
+	
 	switch (getDirection()) {
 	case left:
 		moveTo(getX() - 1, getY());
+
 		break;
 	case right:
 		moveTo(getX() + 1, getY());
@@ -217,7 +231,7 @@ void Bullet::doSomething() {
 		moveTo(getX(), getY() - 1);
 		break;
 	}
-	check = m_world->bulletColCheck(getX(), getY());
+	check = m_world->bulletColCheck(getX(), getY(), sublevel());
 	if (check == 1 || check == 0) {
 		setDead();
 		return;
@@ -228,14 +242,13 @@ int Bullet::bulletCollision() {
 	return 2;
 }
 bool Bullet::passThrough() {
-	std::cerr << "Object has passed through a bullet." << std::endl;
 	return true;
 }
 
-Wall::Wall(int startX, int startY) : SolidObject(IID_WALL, startX, startY) {
+Wall::Wall(int startX, int startY, int sublevel) : SolidObject(IID_WALL, startX, startY, sublevel) {
 	setVisible(true);
 }
 
-FakeWall::FakeWall(int startX, int startY) : ImmobileObject(IID_FAKE_WALL, startX, startY) {
+FakeWall::FakeWall(int startX, int startY, int sublevel) : ImmobileObject(IID_FAKE_WALL, startX, startY, sublevel) {
 	setVisible(true);
 }

@@ -12,67 +12,79 @@ StudentWorld::~StudentWorld() {
 }
 
 void StudentWorld::initializeStruct() {
-	for (int i = 0; i <= getCurrentSubLevel(); i++) {
+	for (int i = 0; i <= MAX_SUB_LEVEL; i++) {
 		vector<Actor*> w;
 		actorVec.push_back(w);
 	}
 }
 
 
-void StudentWorld::loadLevel()
+void StudentWorld::loadLevel(string name, int sublevel)
 {
 	Level lev(assetDirectory());
-	Level::LoadResult result = lev.loadLevel("level00.dat");
-	if (result == Level::load_fail_file_not_found)
-		cerr << "Could not find level00.dat data file\n";
-	else if (result == Level::load_fail_bad_format)
+	Level::LoadResult result = lev.loadLevel(name, sublevel);
+	if (result == Level::load_fail_file_not_found || result == Level::load_sublevel_fail_file_not_found)
+		cerr << "Could not find " << name << " data file\n";
+	else if (result == Level::load_fail_bad_format || result == Level::load_sublevel_fail_bad_format)
 		cerr << "Your level was improperly formatted\n";
-	else if (result == Level::load_success)
+	else if (result == Level::load_success || result == Level::load_sublevel_success)
 	{
+		cerr << "loading " << name << endl;
 		for (int i = 0; i < VIEW_HEIGHT; i++) {
 			for (int j = 0; j < VIEW_WIDTH; j++) {
-				Level::MazeEntry ge = lev.getContentsOf(j, i, 0);
+				Level::MazeEntry ge = lev.getContentsOf(j, i, sublevel);
 				switch (ge)
 				{
 				case Level::wall:
 				{
-					Wall* w = new Wall(j, i);
-					actorVec[0].push_back(w);
+					Wall* w = new Wall(j, i, sublevel);
+					actorVec[sublevel].push_back(w);
 					break;
 				}
 				case Level::player:
 				{
-					m_player = new Player(j, i, 0, this);
+					Player *p = new Player(j, i, this, sublevel);
+					if (sublevel == 0) {
+						m_player = p;
+					}
+					playerVec.push_back(p);
 					break;
 				}
 				case Level::fake_wall:
 				{
-					FakeWall* f = new FakeWall(j, i);
-					actorVec[0].push_back(f);
+					FakeWall* f = new FakeWall(j, i, sublevel);
+					actorVec[sublevel].push_back(f);
 					break;
 				}
 				case Level::gold:
 				{
-					Gold* g = new Gold(j, i, this);
-					actorVec[0].push_back(g);
+					Gold* g = new Gold(j, i, this, sublevel);
+					actorVec[sublevel].push_back(g);
 					break;
 				}
 				case Level::restore_health:
 				{
-					RestoreHealth* r = new RestoreHealth(j, i, this);
-					actorVec[0].push_back(r);
+					RestoreHealth* r = new RestoreHealth(j, i, this, sublevel);
+					actorVec[sublevel].push_back(r);
 					break;
 				}
 				case Level::ammo: 
 				{
-					Ammo* a = new Ammo(j, i, this);
-					actorVec[0].push_back(a);
+					Ammo* a = new Ammo(j, i, this, sublevel);
+					actorVec[sublevel].push_back(a);
 					break;
 				}
 				case Level::extra_life: {
-					ExtraLife* e = new ExtraLife(j, i, this);
-					actorVec[0].push_back(e);
+					ExtraLife* e = new ExtraLife(j, i, this, sublevel);
+					actorVec[sublevel].push_back(e);
 					break;
+				}
+				default: {
+					if (ge >= 0 && ge <= 5) {
+						Gate* g = new Gate(j, i, this, sublevel, ge);
+						actorVec[sublevel].push_back(g);
+						break;
+					}
 				}
 				}
 			}
@@ -80,19 +92,19 @@ void StudentWorld::loadLevel()
 	}
 }
 
-bool StudentWorld::canIPass(int x, int y) {
-	for (size_t i = 0; i < actorVec[0].size(); i++) {
-		if (actorVec[0][i]->getX() == x && actorVec[0][i]->getY() == y && !actorVec[0][i]->passThrough()) {
+bool StudentWorld::canIPass(int x, int y, int sublevel) {
+	for (size_t i = 0; i < actorVec[sublevel].size(); i++) {
+		if (actorVec[sublevel][i]->getX() == x && actorVec[sublevel][i]->getY() == y && !actorVec[sublevel][i]->passThrough()) {
 			return false;
 		}
 	}
 	return true;
 }
 
-int StudentWorld::bulletColCheck(int x, int y) {
-	for (size_t i = 0; i < actorVec[0].size(); i++) {
-		if (actorVec[0][i]->getX() == x && actorVec[0][i]->getY() == y) {
-			int col = actorVec[0][i]->bulletCollision();
+int StudentWorld::bulletColCheck(int x, int y, int sublevel) {
+	for (size_t i = 0; i < actorVec[sublevel].size(); i++) {
+		if (actorVec[sublevel][i]->getX() == x && actorVec[sublevel][i]->getY() == y) {
+			int col = actorVec[sublevel][i]->bulletCollision();
 			if (col == 1) {
 				return 1;
 			}
@@ -101,12 +113,18 @@ int StudentWorld::bulletColCheck(int x, int y) {
 			}
 		}
 	}
+	for (size_t i = 0; i < playerVec.size(); i++) {
+		if (playerVec[i]->getX() == x && playerVec[i]->getY() == y) {
+			return 1;
+		}
+	}
 	return 2;
 }
 
-void StudentWorld::placeObject(Actor* p) {
-	actorVec[0].push_back(p);
+void StudentWorld::placeObject(Actor* p, int sublevel) {
+	actorVec[sublevel].push_back(p);
 }
+
 void StudentWorld::cleanDead() {
 	for (size_t i = 0; i < actorVec.size(); i++) {
 		for (size_t j = 0; j < actorVec[i].size(); j++) {
@@ -158,6 +176,28 @@ string StudentWorld::statTextFormatter(int score, int level, int sublevel, int l
 	return out;
 }
 
+void StudentWorld::subLevelLoader() {
+	for (int i = 0; i < MAX_SUB_LEVEL; i++) {
+		ostringstream oss;
+		oss << "level";
+		oss.fill('0');
+		oss << setw(2) << getLevel();
+		if (i != 0) {
+			oss << "_" << setw(1) << i;
+		}
+		oss << ".dat";
+		string out = oss.str();
+		loadLevel(out, i);
+	}
+}
+void StudentWorld::setSubLevel(int sl) {
+	for (size_t i = 0; i < playerVec.size(); i++) {
+		if (playerVec[i]->sublevel() == sl) {
+			m_player = playerVec[i];
+		}
+	}
+	m_numSubLevel = sl;
+}
 Player* StudentWorld::player() {
 	return m_player;
 }

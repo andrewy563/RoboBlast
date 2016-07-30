@@ -23,7 +23,7 @@ public:
 	virtual int init()
 	{
 		initializeStruct();
-		loadLevel();
+		subLevelLoader();
 		/*1. Initialize the data structures used to keep track of your game’s world.
 2. Load the current main maze’s and all its sub-mazes’ details from level data file(s).
 3. Allocate and insert a valid Player object into the game world.
@@ -43,10 +43,8 @@ file. */
 			return GWSTATUS_PLAYER_DIED;
 		}
 		setDisplayText();
-		for (size_t i = 0; i < actorVec.size(); i++) {
-			for (size_t j = 0; j < actorVec[i].size(); j++) {
-				actorVec[i][j]->doSomething();
-			}
+		for (size_t j = 0; j < actorVec[getCurrentSubLevel()].size(); j++) {
+			actorVec[getCurrentSubLevel()][j]->doSomething();
 		}
 		m_player->doSomething();
 		if (!m_player->alive()) {
@@ -62,7 +60,6 @@ file. */
 
 	virtual void cleanUp()
 	{
-		std::cerr << "hello";
 		for (size_t i = 0; i < actorVec.size(); i++) {
 			for (size_t j = 0; j < actorVec[i].size(); j++) {
 				delete actorVec[i][j];
@@ -70,7 +67,11 @@ file. */
 			actorVec[i].clear();
 		}
 		actorVec.clear();
-		delete m_player;
+
+		for (size_t i = 0; i < playerVec.size(); i++) {
+			delete playerVec[i];
+		}
+		playerVec.clear();
 	}
     
     virtual int getCurrentSubLevel()
@@ -78,17 +79,20 @@ file. */
         return m_numSubLevel; // This code is here merely to allow the skeleton to build.
     }
 
-	bool canIPass(int x, int y);			// returns all actors that are at (x, y) in a certain sublevel
-	int bulletColCheck(int x, int y);			// checks for a moveable object
-	void placeObject(Actor* p);			// creates a new object at a certain point
+	bool canIPass(int x, int y, int sublevel);			// returns all actors that are at (x, y) in a certain sublevel
+	int bulletColCheck(int x, int y, int sublevel);			// checks for a moveable object
+	void placeObject(Actor* p, int sublevel);			// creates a new object at a certain point
 	void initializeStruct();		// initializes the data structures
-	void loadLevel();				// loads a level;
+	void loadLevel(std::string name, int sublevel);				// loads a level;
 	void cleanDead();
 	void setDisplayText();
+	void subLevelLoader();
+	void setSubLevel(int sl);
 	Player* player();
 	std::string statTextFormatter(int score, int level, int sublevel, int lives, int health, int ammo, int time);
 private:
 	std::vector<std::vector<Actor*>> actorVec;
+	std::vector<Player*> playerVec;
 	Player* m_player;
 	int m_numSubLevel;
 	int m_time;
