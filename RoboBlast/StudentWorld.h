@@ -22,8 +22,11 @@ public:
 
 	virtual int init()
 	{
+		if (getLevel() >= 100) {
+			return GWSTATUS_PLAYER_WON;
+		}
 		initializeStruct();
-		subLevelLoader();
+		int out = subLevelLoader();
 		/*1. Initialize the data structures used to keep track of your game’s world.
 2. Load the current main maze’s and all its sub-mazes’ details from level data file(s).
 3. Allocate and insert a valid Player object into the game world.
@@ -33,27 +36,43 @@ objects, Gold Bullion objects, Goodie objects, Farplane Gun objects, or Exit
 objects into the game world, as required by the specification in the level’s data
 file. */
 		m_time = 3000;
-		return GWSTATUS_CONTINUE_GAME;
+		m_levelEnd = false;
+		OPEN_EXIT = false;
+		m_numSubLevel = 0;
+		return out;
 	}
 
 	virtual int move()
 	{
+		m_time -= 1;
 		if (m_time <= 0) {
 			decLives();
+			m_numSubLevel = 0;
 			return GWSTATUS_PLAYER_DIED;
 		}
 		setDisplayText();
-		for (size_t j = 0; j < actorVec[getCurrentSubLevel()].size(); j++) {
+		int originalSubLevel = getCurrentSubLevel();
+		size_t size = actorVec[getCurrentSubLevel()].size();
+		for (size_t j = 0; j < size; j++) {
 			actorVec[getCurrentSubLevel()][j]->doSomething();
+			if (originalSubLevel != getCurrentSubLevel()) {
+				j = size;
+			}
 		}
 		m_player->doSomething();
+		equalizeHealth();
 		if (!m_player->alive()) {
 			decLives();
 			return GWSTATUS_PLAYER_DIED;
 		}
+		openExit();
+		if (m_levelEnd) {
+			increaseScore(m_time);
+			return GWSTATUS_FINISHED_LEVEL;
+		}
 		  // This code is here merely to allow the game to build, run, and terminate after you hit enter a few times.
 		  // Notice that the return value GWSTATUS_PLAYER_DIED will cause our framework to end the current level.
-		m_time -= 1;
+
 		cleanDead();
 		return GWSTATUS_CONTINUE_GAME;
 	}
@@ -83,20 +102,27 @@ file. */
 	int bulletColCheck(int x, int y, int sublevel);			// checks for a moveable object
 	void placeObject(Actor* p, int sublevel);			// creates a new object at a certain point
 	void initializeStruct();		// initializes the data structures
-	void loadLevel(std::string name, int sublevel);				// loads a level;
+	int loadLevel(std::string name, int sublevel);				// loads a level;
 	void cleanDead();
 	void setDisplayText();
-	void subLevelLoader();
+	int subLevelLoader();
 	void setSubLevel(int sl);
+	void endLevel();
+	void openExit();
+	void equalizeHealth();
+	int getTick();
+	void checkGrid();
 	Player* player();
 	std::string statTextFormatter(int score, int level, int sublevel, int lives, int health, int ammo, int time);
 private:
 	std::vector<std::vector<Actor*>> actorVec;
 	std::vector<Player*> playerVec;
 	Player* m_player;
+	Exit* m_exit;
 	int m_numSubLevel;
 	int m_time;
-
+	bool m_levelEnd;
+	bool OPEN_EXIT;
 };
 
 #endif // STUDENTWORLD_H_

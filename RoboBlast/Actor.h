@@ -3,17 +3,23 @@
 
 #include "GraphObject.h"
 
+class StudentWorld;
 class Actor : public GraphObject {
 public:
-	Actor(int imageID, int startX, int startY, int sublevel, Direction startDirection);
+	Actor(int imageID, int startX, int startY, int sublevel, Direction startDirection, StudentWorld* world);
 	virtual void doSomething() = 0;				// dictates what the actor does during a tick
 	virtual int bulletCollision() = 0;			// return 0 if object blocks bullets, returns 1 if object takes damage, returns 2 if bullet goes through
 	virtual bool passThrough() = 0;
 	bool alive();
-	void setDead();
+	virtual void setDead();
 	int sublevel();
 	void moveSubLevel(int in);
+	void activate(bool on);
+	bool active();
+	StudentWorld* world();
 private:
+	StudentWorld* m_world;
+	bool ACTIVE;
 	int m_sublevel;
 	bool m_alive;
 };
@@ -21,7 +27,7 @@ private:
 
 class ImmobileObject : public Actor {
 public:	
-	ImmobileObject(int imageID, int startX, int startY, int sublevel);
+	ImmobileObject(int imageID, int startX, int startY, int sublevel, StudentWorld* world);
 	virtual void doSomething();				// dictates what the actor does during a tick
 	virtual int bulletCollision();
 	virtual bool passThrough();
@@ -44,15 +50,26 @@ public:
 	FakeWall(int startX, int startY, int sublevel);
 };
 
-class StudentWorld;
+class Waterpool : public SolidObject {
+public:
+	Waterpool(int startX, int startY, int sublevel);
+	virtual void doSomething();
+private:
+	int m_health;
+};
+
+class Nest : public SolidObject {
+public:
+	Nest(int startX, int startY, int sublevel);
+	virtual void doSomething();
+};
+
 class Item : public ImmobileObject {
 public:
 	Item(int imageID, int startX, int startY, StudentWorld* world, int sublevel);
-	StudentWorld* world();
 	virtual void doSomething();
 	virtual void itemPickUp() = 0;
 private:
-	StudentWorld* m_world;
 };
 class Gate : public Item {
 public:
@@ -61,6 +78,17 @@ public:
 private:
 	int m_dest;
 };
+class Exit :public Item {
+public:
+	Exit(int startX, int startY, StudentWorld* world, int sublevel);
+	virtual void itemPickUp();
+};
+class Hostage : public Item {
+public:
+	Hostage(int startX, int startY, StudentWorld* world, int sublevel);
+	virtual void itemPickUp();
+};
+
 class Gold : public Item {
 public:
 	Gold(int startX, int startY, StudentWorld* world, int sublevel);
@@ -81,18 +109,48 @@ public:
 	ExtraLife(int startX, int startY, StudentWorld* world, int sublevel);
 	virtual void itemPickUp();
 };
+class Farplane :public Item {
+public:
+	Farplane(int startX, int startY, StudentWorld* world, int sublevel);
+	virtual void itemPickUp();
+};
+
 class MobileObject : public Actor {
 public:
 	MobileObject(int imageID, int startX, int startY, Direction startDirection, int health, StudentWorld* world, int sublevel);
 	virtual bool passThrough();
 	virtual int bulletCollision();
-	virtual StudentWorld* world();
 	void fire();
 	int health();
 	void setHealth(int newh);
 private:
 	int m_health;
-	StudentWorld* m_world;
+};
+
+class Enemy : public MobileObject {
+public:
+	Enemy(int imageID, int startX, int startY, Direction startDirection, int health, StudentWorld* world, int sublevel);
+	bool doIRest();
+	bool eyeSight();
+private:
+	int m_moveRate;
+};
+
+class Gangster : public Enemy {
+public:
+	Gangster(int startX, int startY, int startDirection, StudentWorld* world, int sublevel, int health = 10, int imageID = IID_GANGSTER);
+	virtual void doSomething();
+};
+
+class Robot : public Gangster {
+public:
+	Robot(int startX, int startY, StudentWorld* world, int sublevel);
+};
+
+class Bully : public Enemy {
+public:
+	Bully(int startX, int startY, StudentWorld* world, int sublevel);
+	virtual void doSomething();
 };
 
 class Player : public MobileObject{
@@ -101,8 +159,11 @@ public:
 	virtual void doSomething();
 	int ammo();
 	void increaseAmmo(int in);
+	void damage(int in);
 private:
 	int ammunition;
+	int gateX;
+	int gateY;
 };
 
 class Bullet : public Actor {
@@ -112,7 +173,6 @@ public:
 	virtual int bulletCollision();
 	virtual bool passThrough();
 private:
-	StudentWorld* m_world;
 };
 
 #endif // ACTOR_H_

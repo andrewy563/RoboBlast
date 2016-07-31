@@ -19,14 +19,18 @@ void StudentWorld::initializeStruct() {
 }
 
 
-void StudentWorld::loadLevel(string name, int sublevel)
+int StudentWorld::loadLevel(string name, int sublevel)
 {
 	Level lev(assetDirectory());
 	Level::LoadResult result = lev.loadLevel(name, sublevel);
-	if (result == Level::load_fail_file_not_found || result == Level::load_sublevel_fail_file_not_found)
+	if (result == Level::load_fail_file_not_found) {
 		cerr << "Could not find " << name << " data file\n";
-	else if (result == Level::load_fail_bad_format || result == Level::load_sublevel_fail_bad_format)
+		return GWSTATUS_PLAYER_WON;
+	}
+	else if (result == Level::load_fail_bad_format || result == Level::load_sublevel_fail_bad_format) {
 		cerr << "Your level was improperly formatted\n";
+		return GWSTATUS_LEVEL_ERROR;
+	}
 	else if (result == Level::load_success || result == Level::load_sublevel_success)
 	{
 		cerr << "loading " << name << endl;
@@ -79,17 +83,45 @@ void StudentWorld::loadLevel(string name, int sublevel)
 					actorVec[sublevel].push_back(e);
 					break;
 				}
+				case Level::hostage: {
+					Hostage* h = new Hostage(j, i, this, sublevel);
+					actorVec[sublevel].push_back(h);
+					break;
+				}
+				case Level::horiz_gangster: {
+					Gangster* g = new Gangster(j, i, 1, this, sublevel);
+					actorVec[sublevel].push_back(g);
+					break;
+				}
+				case Level::vert_gangster: {
+					Gangster* g = new Gangster(j, i, 2, this, sublevel);
+					actorVec[sublevel].push_back(g);
+					break;
+				}
+				case Level::robot_boss: {
+					Robot* r = new Robot(j, i, this, sublevel);
+					actorVec[sublevel].push_back(r);
+					break;
+				}
+				case Level::exit: {
+					if (sublevel == 0) {
+						Exit* e = new Exit(j, i, this, sublevel);
+						actorVec[sublevel].push_back(e);
+					}
+					break;
+				}
 				default: {
 					if (ge >= 0 && ge <= 5) {
 						Gate* g = new Gate(j, i, this, sublevel, ge);
 						actorVec[sublevel].push_back(g);
-						break;
 					}
+					break;
 				}
 				}
 			}
 		}
 	}
+	return GWSTATUS_CONTINUE_GAME;
 }
 
 bool StudentWorld::canIPass(int x, int y, int sublevel) {
@@ -102,6 +134,7 @@ bool StudentWorld::canIPass(int x, int y, int sublevel) {
 }
 
 int StudentWorld::bulletColCheck(int x, int y, int sublevel) {
+	int out = 2;
 	for (size_t i = 0; i < actorVec[sublevel].size(); i++) {
 		if (actorVec[sublevel][i]->getX() == x && actorVec[sublevel][i]->getY() == y) {
 			int col = actorVec[sublevel][i]->bulletCollision();
@@ -109,16 +142,14 @@ int StudentWorld::bulletColCheck(int x, int y, int sublevel) {
 				return 1;
 			}
 			if (col == 0) {
-				return 0;
+				out = 0;
 			}
 		}
 	}
-	for (size_t i = 0; i < playerVec.size(); i++) {
-		if (playerVec[i]->getX() == x && playerVec[i]->getY() == y) {
-			return 1;
-		}
+	if (m_player->getX() == x && m_player->getY() == y) {
+		return m_player->bulletCollision();
 	}
-	return 2;
+	return out;
 }
 
 void StudentWorld::placeObject(Actor* p, int sublevel) {
@@ -176,7 +207,7 @@ string StudentWorld::statTextFormatter(int score, int level, int sublevel, int l
 	return out;
 }
 
-void StudentWorld::subLevelLoader() {
+int StudentWorld::subLevelLoader() {
 	for (int i = 0; i < MAX_SUB_LEVEL; i++) {
 		ostringstream oss;
 		oss << "level";
@@ -187,8 +218,15 @@ void StudentWorld::subLevelLoader() {
 		}
 		oss << ".dat";
 		string out = oss.str();
-		loadLevel(out, i);
+		int status = loadLevel(out, i);
+		if (status == GWSTATUS_PLAYER_WON) {
+			return GWSTATUS_PLAYER_WON;
+		}
+		else if (status == GWSTATUS_LEVEL_ERROR) {
+			return GWSTATUS_LEVEL_ERROR;
+		}
 	}
+	return GWSTATUS_CONTINUE_GAME;
 }
 void StudentWorld::setSubLevel(int sl) {
 	for (size_t i = 0; i < playerVec.size(); i++) {
@@ -197,6 +235,39 @@ void StudentWorld::setSubLevel(int sl) {
 		}
 	}
 	m_numSubLevel = sl;
+}
+
+void StudentWorld::endLevel() {
+	m_levelEnd = true;
+}
+
+void StudentWorld::openExit() {
+	if (OPEN_EXIT) {
+		return;
+	}
+	Actor* p;
+	for (size_t i = 0; i < actorVec.size(); i++) {
+		for (size_t j = 0; j < actorVec[i].size(); j++) {
+			if (actorVec[i][j]->getID() == IID_EXIT) {
+				p = actorVec[i][j];
+			}
+			if (actorVec[i][j]->getID() == IID_GOLD || actorVec[i][j]->getID() == IID_HOSTAGE || actorVec[i][j]->getID() == IID_ROBOT_BOSS) {
+				return;
+			}
+		}
+	}
+	playSound(SOUND_REVEAL_EXIT);
+	p->activate(true);
+	OPEN_EXIT = true;
+}
+int StudentWorld::getTick() {
+	return m_time;
+}
+void StudentWorld::equalizeHealth() {
+	int h = m_player->health();
+	for (size_t i = 0; i < playerVec.size(); i++) {
+		playerVec[i]->setHealth(h);
+	}
 }
 Player* StudentWorld::player() {
 	return m_player;
