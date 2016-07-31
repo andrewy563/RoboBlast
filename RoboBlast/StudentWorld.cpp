@@ -72,7 +72,7 @@ int StudentWorld::loadLevel(string name, int sublevel)
 					actorVec[sublevel].push_back(r);
 					break;
 				}
-				case Level::ammo: 
+				case Level::ammo:
 				{
 					Ammo* a = new Ammo(j, i, this, sublevel);
 					actorVec[sublevel].push_back(a);
@@ -108,6 +108,16 @@ int StudentWorld::loadLevel(string name, int sublevel)
 						Exit* e = new Exit(j, i, this, sublevel);
 						actorVec[sublevel].push_back(e);
 					}
+					break;
+				}
+				case Level::farplane_gun: {
+					Farplane* f = new Farplane(j, i, this, sublevel);
+					actorVec[sublevel].push_back(f);
+					break;
+				}
+				case Level::bully_nest: {
+					Nest* n = new Nest(j, i, this, sublevel);
+					actorVec[sublevel].push_back(n);
 					break;
 				}
 				default: {
@@ -200,8 +210,8 @@ string StudentWorld::statTextFormatter(int score, int level, int sublevel, int l
 	oss << "  Health: ";
 	oss << setw(3) << health << "%";
 	oss << "  Ammo: ";
-	oss << ammo;
-	oss << "  Time: ";
+	oss << setw(3) << ammo;
+	oss << "  TimeLimit: ";
 	oss << setw(4) << time;
 	string out = oss.str();
 	return out;
@@ -263,11 +273,42 @@ void StudentWorld::openExit() {
 int StudentWorld::getTick() {
 	return m_time;
 }
-void StudentWorld::equalizeHealth() {
+void StudentWorld::equalizeStats() {
 	int h = m_player->health();
+	int a = m_player->ammo();
 	for (size_t i = 0; i < playerVec.size(); i++) {
 		playerVec[i]->setHealth(h);
+		playerVec[i]->setAmmo(a);
 	}
+}
+
+bool StudentWorld::checkGrid(int dim, int ID, int sublevel, Actor* center, Actor*& output) {
+	int centerX = center->getX();
+	int centerY = center->getY();
+	for (size_t i = 0; i < actorVec[sublevel].size(); i++) {
+		if ((actorVec[sublevel][i]->getX() >= centerX - dim / 2 && actorVec[sublevel][i]->getX() <= centerX + dim / 2) &&
+			(actorVec[sublevel][i]->getY() >= centerY - dim / 2 && actorVec[sublevel][i]->getY() <= centerY + dim / 2)) {
+			if (actorVec[sublevel][i]->getID() == ID && actorVec[sublevel][i]->alive()) {
+				output = actorVec[sublevel][i];
+				return true;
+			}
+		}
+	}
+	return false;
+}
+int StudentWorld::countGrid(int dim, int ID, int sublevel, Actor* center) {
+	int centerX = center->getX();
+	int centerY = center->getY();
+	int count = 0;
+	for (size_t i = 0; i < actorVec[sublevel].size(); i++) {
+		if ((actorVec[sublevel][i]->getX() >= centerX - dim / 2 && actorVec[sublevel][i]->getX() <= centerX + dim / 2) &&
+			(actorVec[sublevel][i]->getY() >= centerY - dim / 2 && actorVec[sublevel][i]->getX() <= centerY + dim / 2)) {
+			if (actorVec[sublevel][i]->getID() == ID && actorVec[sublevel][i]->alive()) {
+				count++;
+			}
+		}
+	}
+	return count;
 }
 Player* StudentWorld::player() {
 	return m_player;

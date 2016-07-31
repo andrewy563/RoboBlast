@@ -16,6 +16,7 @@ public:
 	void moveSubLevel(int in);
 	void activate(bool on);
 	bool active();
+	void kill();
 	StudentWorld* world();
 private:
 	StudentWorld* m_world;
@@ -60,8 +61,10 @@ private:
 
 class Nest : public SolidObject {
 public:
-	Nest(int startX, int startY, int sublevel);
+	Nest(int startX, int startY, StudentWorld* world, int sublevel);
 	virtual void doSomething();
+private:
+	StudentWorld* m_world;
 };
 
 class Item : public ImmobileObject {
@@ -132,7 +135,9 @@ public:
 	Enemy(int imageID, int startX, int startY, Direction startDirection, int health, StudentWorld* world, int sublevel);
 	bool doIRest();
 	bool eyeSight();
+	bool move();
 private:
+	int m_tick;
 	int m_moveRate;
 };
 
@@ -140,17 +145,23 @@ class Gangster : public Enemy {
 public:
 	Gangster(int startX, int startY, int startDirection, StudentWorld* world, int sublevel, int health = 10, int imageID = IID_GANGSTER);
 	virtual void doSomething();
+	virtual void setDead();
 };
 
 class Robot : public Gangster {
 public:
 	Robot(int startX, int startY, StudentWorld* world, int sublevel);
+	virtual void setDead();
 };
 
 class Bully : public Enemy {
 public:
 	Bully(int startX, int startY, StudentWorld* world, int sublevel);
 	virtual void doSomething();
+	virtual void setDead();
+private:
+	int TURN_DISTANCE;
+	int m_goodies[3];
 };
 
 class Player : public MobileObject{
@@ -160,6 +171,7 @@ public:
 	int ammo();
 	void increaseAmmo(int in);
 	void damage(int in);
+	void setAmmo(int in);
 private:
 	int ammunition;
 	int gateX;

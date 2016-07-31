@@ -60,7 +60,7 @@ file. */
 			}
 		}
 		m_player->doSomething();
-		equalizeHealth();
+		equalizeStats();
 		if (!m_player->alive()) {
 			decLives();
 			return GWSTATUS_PLAYER_DIED;
@@ -109,9 +109,10 @@ file. */
 	void setSubLevel(int sl);
 	void endLevel();
 	void openExit();
-	void equalizeHealth();
+	void equalizeStats();
 	int getTick();
-	void checkGrid();
+	bool checkGrid(int dim, int ID, int sublevel, Actor* center, Actor*& output);
+	int countGrid(int dim, int ID, int sublevel, Actor* center);
 	Player* player();
 	std::string statTextFormatter(int score, int level, int sublevel, int lives, int health, int ammo, int time);
 private:
