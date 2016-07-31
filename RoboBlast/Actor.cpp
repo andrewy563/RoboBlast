@@ -354,16 +354,6 @@ void Player::doSomething() {
 int Player::ammo() {
 	return ammunition;
 }
-void Player::warp() {
-	gateX = getX();
-	gateY = getY();
-}
-int Player::getGateX() {
-	return gateX;
-}
-int Player::getGateY() {
-	return gateY;
-}
 void Player::increaseAmmo(int n) {
 	ammunition += n;
 }
