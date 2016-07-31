@@ -160,6 +160,9 @@ public:
 	int ammo();
 	void increaseAmmo(int in);
 	void damage(int in);
+	void warp();
+	int getGateX();
+	int getGateY();
 private:
 	int ammunition;
 	int gateX;

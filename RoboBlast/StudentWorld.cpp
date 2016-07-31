@@ -229,10 +229,8 @@ int StudentWorld::subLevelLoader() {
 	return GWSTATUS_CONTINUE_GAME;
 }
 void StudentWorld::setSubLevel(int sl) {
-	for (size_t i = 0; i < playerVec.size(); i++) {
-		if (playerVec[i]->sublevel() == sl) {
-			m_player = playerVec[i];
-		}
+	if (sl != 0) {
+		m_player->
 	}
 	m_numSubLevel = sl;
 }
