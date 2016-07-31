@@ -51,7 +51,7 @@ int StudentWorld::loadLevel(string name, int sublevel)
 					if (sublevel == 0) {
 						m_player = p;
 					}
-					playerVec.push_back(p);
+					actorVec[sublevel].push_back(p);
 					break;
 				}
 				case Level::fake_wall:
@@ -239,9 +239,9 @@ int StudentWorld::subLevelLoader() {
 	return GWSTATUS_CONTINUE_GAME;
 }
 void StudentWorld::setSubLevel(int sl) {
-	for (size_t i = 0; i < playerVec.size(); i++) {
-		if (playerVec[i]->sublevel() == sl) {
-			m_player = playerVec[i];
+	for (size_t i = 0; i < actorVec[sl].size(); i++) {
+		if (actorVec[sl][i]->getID() == IID_PLAYER) {
+			m_player = dynamic_cast<Player*>(actorVec[sl][i]);
 		}
 	}
 	m_numSubLevel = sl;
@@ -276,9 +276,14 @@ int StudentWorld::getTick() {
 void StudentWorld::equalizeStats() {
 	int h = m_player->health();
 	int a = m_player->ammo();
-	for (size_t i = 0; i < playerVec.size(); i++) {
-		playerVec[i]->setHealth(h);
-		playerVec[i]->setAmmo(a);
+	for (size_t i = 0; i < actorVec.size(); i++) {
+		for (size_t j = 0; j < actorVec[i].size(); j++) {
+			if (actorVec[i][j]->getID() == IID_PLAYER) {
+				Player* p = dynamic_cast<Player*>(actorVec[i][j]);
+				p->setHealth(h);
+				p->setAmmo(a);
+			}
+		}
 	}
 }
 
