@@ -21,8 +21,9 @@ void StudentWorld::initializeStruct() {
 
 int StudentWorld::loadLevel(string name, int sublevel)
 {
-	Level lev(assetDirectory());
+	Level lev(assetDirectory());												// use the provided Level class
 	Level::LoadResult result = lev.loadLevel(name, sublevel);
+
 	if (result == Level::load_fail_file_not_found) {
 		cerr << "Could not find " << name << " data file\n";
 		return GWSTATUS_PLAYER_WON;
@@ -37,12 +38,12 @@ int StudentWorld::loadLevel(string name, int sublevel)
 		for (int i = 0; i < VIEW_HEIGHT; i++) {
 			for (int j = 0; j < VIEW_WIDTH; j++) {
 				Level::MazeEntry ge = lev.getContentsOf(j, i, sublevel);
-				switch (ge)
+				switch (ge)													// add an Actor to actorVec depending on what character was in the .dat file
 				{
 				case Level::wall:
 				{
-					Wall* w = new Wall(j, i, sublevel);
-					actorVec[sublevel].push_back(w);
+					Wall* p = new Wall(j, i, sublevel);
+					actorVec[sublevel].push_back(p);
 					break;
 				}
 				case Level::player:
@@ -151,7 +152,7 @@ int StudentWorld::bulletColCheck(int x, int y, int sublevel) {
 			if (col == 1) {
 				return 1;
 			}
-			if (col == 0) {
+			if (col == 0) {								// don't return just in case Bully is on top of Bully Nest
 				out = 0;
 			}
 		}
@@ -166,7 +167,7 @@ void StudentWorld::placeObject(Actor* p, int sublevel) {
 	actorVec[sublevel].push_back(p);
 }
 
-void StudentWorld::cleanDead() {
+void StudentWorld::cleanDead() {						// delete all dead Actors
 	for (size_t i = 0; i < actorVec.size(); i++) {
 		for (size_t j = 0; j < actorVec[i].size(); j++) {
 			if (!actorVec[i][j]->alive()) {
@@ -196,7 +197,7 @@ void StudentWorld::setDisplayText() {
 }
 
 string StudentWorld::statTextFormatter(int score, int level, int sublevel, int lives, int health, int ammo, int time) {
-	ostringstream oss;
+	ostringstream oss;							// use stringstream
 	oss << "Score: ";
 	oss.fill('0');
 	oss << setw(7) << score;
@@ -217,9 +218,9 @@ string StudentWorld::statTextFormatter(int score, int level, int sublevel, int l
 	return out;
 }
 
-int StudentWorld::subLevelLoader() {
+int StudentWorld::fileNameHandler() {
 	for (int i = 0; i < MAX_SUB_LEVEL; i++) {
-		ostringstream oss;
+		ostringstream oss;									// use stringstream to add in a 0 if the level is a single digit number
 		oss << "level";
 		oss.fill('0');
 		oss << setw(2) << getLevel();
@@ -238,9 +239,10 @@ int StudentWorld::subLevelLoader() {
 	}
 	return GWSTATUS_CONTINUE_GAME;
 }
+
 void StudentWorld::setSubLevel(int sl) {
 	for (size_t i = 0; i < actorVec[sl].size(); i++) {
-		if (actorVec[sl][i]->getID() == IID_PLAYER) {
+		if (actorVec[sl][i]->getID() == IID_PLAYER) {					// find the Player object on the new sublevel and set it as m_player
 			m_player = dynamic_cast<Player*>(actorVec[sl][i]);
 		}
 	}
@@ -252,7 +254,7 @@ void StudentWorld::endLevel() {
 }
 
 void StudentWorld::openExit() {
-	if (OPEN_EXIT) {
+	if (OPEN_EXIT) {												// if exit is already open, then return
 		return;
 	}
 	Actor* p;
@@ -262,7 +264,7 @@ void StudentWorld::openExit() {
 				p = actorVec[i][j];
 			}
 			if (actorVec[i][j]->getID() == IID_GOLD || actorVec[i][j]->getID() == IID_HOSTAGE || actorVec[i][j]->getID() == IID_ROBOT_BOSS) {
-				return;
+				return;													// don't do anything if Gold, Hostage, or Robot Boss still exist
 			}
 		}
 	}
@@ -270,9 +272,11 @@ void StudentWorld::openExit() {
 	p->activate(true);
 	OPEN_EXIT = true;
 }
+
 int StudentWorld::getTick() {
 	return m_time;
 }
+
 void StudentWorld::equalizeStats() {
 	int h = m_player->health();
 	int a = m_player->ammo();
@@ -288,13 +292,14 @@ void StudentWorld::equalizeStats() {
 }
 
 bool StudentWorld::checkGrid(int dim, int ID, int sublevel, Actor* center, Actor*& output) {
+		// check if there is an Actor of type ID in a grid that is centered at center and has dimensions of dim
 	int centerX = center->getX();
 	int centerY = center->getY();
 	for (size_t i = 0; i < actorVec[sublevel].size(); i++) {
 		if ((actorVec[sublevel][i]->getX() >= centerX - dim / 2 && actorVec[sublevel][i]->getX() <= centerX + dim / 2) &&
 			(actorVec[sublevel][i]->getY() >= centerY - dim / 2 && actorVec[sublevel][i]->getY() <= centerY + dim / 2)) {
 			if (actorVec[sublevel][i]->getID() == ID && actorVec[sublevel][i]->alive()) {
-				output = actorVec[sublevel][i];
+				output = actorVec[sublevel][i];			// set output equal to the Actor of type ID
 				return true;
 			}
 		}
@@ -302,6 +307,7 @@ bool StudentWorld::checkGrid(int dim, int ID, int sublevel, Actor* center, Actor
 	return false;
 }
 int StudentWorld::countGrid(int dim, int ID, int sublevel, Actor* center) {
+		// similar to checkGrid except the function tallies all Actors with type ID
 	int centerX = center->getX();
 	int centerY = center->getY();
 	int count = 0;
@@ -315,12 +321,12 @@ int StudentWorld::countGrid(int dim, int ID, int sublevel, Actor* center) {
 	}
 	return count;
 }
+
 Player* StudentWorld::player() {
 	return m_player;
 }
+
 GameWorld* createStudentWorld(string assetDir)
 {
 	return new StudentWorld(assetDir);
 }
-
-// Students:  Add code to this file (if you wish), StudentWorld.h, Actor.h and Actor.cpp
